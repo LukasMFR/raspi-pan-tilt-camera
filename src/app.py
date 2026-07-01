@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 import io
-import json
 import threading
-from pathlib import Path
 
-from flask import Flask, Response, jsonify, render_template_string, redirect, url_for
+from flask import Flask, Response, jsonify, render_template_string
 
 from picamera2 import Picamera2
 from picamera2.encoders import MJPEGEncoder
@@ -13,42 +11,18 @@ from picamera2.outputs import FileOutput
 
 from adafruit_servokit import ServoKit
 
+from pan_tilt_config import CONFIG_PATH, load_config
+
 
 # =========================
 # CONFIG
 # =========================
-
-CONFIG_PATH = Path("/home/pi/pan_tilt_config.json")
 
 WIDTH = 1280
 HEIGHT = 720
 FPS = 20
 PORT = 5000
 STEP = 5
-
-DEFAULT_CONFIG = {
-    "pan_channel": 1,
-    "tilt_channel": 0,
-    "pan_center": 90,
-    "tilt_center": 90,
-    "pan_min": 30,
-    "pan_max": 150,
-    "tilt_min": 45,
-    "tilt_max": 135,
-    "invert_pan": False,
-    "invert_tilt": False,
-}
-
-
-def load_config():
-    if CONFIG_PATH.exists():
-        with CONFIG_PATH.open("r") as f:
-            data = json.load(f)
-        return {**DEFAULT_CONFIG, **data}
-
-    print(f"Config introuvable: {CONFIG_PATH}")
-    print("Utilisation de la config par défaut.")
-    return DEFAULT_CONFIG.copy()
 
 
 config = load_config()
@@ -69,6 +43,7 @@ INVERT_TILT = bool(config["invert_tilt"])
 
 pan = PAN_CENTER
 tilt = TILT_CENTER
+servo_lock = threading.Lock()
 
 
 # =========================
@@ -100,27 +75,37 @@ def apply_servos():
 def move_servo(direction):
     global pan, tilt
 
-    if direction == "left":
-        pan += STEP if INVERT_PAN else -STEP
+    with servo_lock:
+        pan_delta = -STEP
+        tilt_delta = -STEP
 
-    elif direction == "right":
-        pan -= STEP if INVERT_PAN else STEP
+        if INVERT_PAN:
+            pan_delta *= -1
+        if INVERT_TILT:
+            tilt_delta *= -1
 
-    elif direction == "up":
-        tilt += STEP if INVERT_TILT else -STEP
+        if direction == "left":
+            pan += pan_delta
 
-    elif direction == "down":
-        tilt -= STEP if INVERT_TILT else STEP
+        elif direction == "right":
+            pan -= pan_delta
 
-    elif direction == "center":
-        pan = PAN_CENTER
-        tilt = TILT_CENTER
+        elif direction == "up":
+            tilt += tilt_delta
 
+        elif direction == "down":
+            tilt -= tilt_delta
+
+        elif direction == "center":
+            pan = PAN_CENTER
+            tilt = TILT_CENTER
+
+        apply_servos()
+
+
+# Center the servos at startup.
+with servo_lock:
     apply_servos()
-
-
-# Position centrale au démarrage
-apply_servos()
 
 
 # =========================
@@ -166,7 +151,7 @@ PAGE = """
     h1 {
       margin: 0;
       font-size: clamp(22px, 4vw, 34px);
-      letter-spacing: -0.04em;
+      letter-spacing: 0;
     }
 
     .subtitle {
@@ -374,14 +359,6 @@ def api_move(direction):
         "pan_center": PAN_CENTER,
         "tilt_center": TILT_CENTER,
     })
-
-
-# Fallback pratique si tu veux tester directement dans l'URL
-@app.route("/move/<direction>")
-def move_page(direction):
-    if direction in ["left", "right", "up", "down", "center"]:
-        move_servo(direction)
-    return redirect(url_for("index"))
 
 
 def generate_stream():

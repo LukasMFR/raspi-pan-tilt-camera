@@ -5,10 +5,12 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
+User=pi
 WorkingDirectory=/home/pi/raspi-pan-tilt-camera
+Environment=PAN_TILT_CONFIG=/home/pi/pan_tilt_config.json
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/home/pi/servo-env/bin/python /home/pi/raspi-pan-tilt-camera/src/app.py
-Restart=always
+Restart=on-failure
 RestartSec=5
 
 [Install]

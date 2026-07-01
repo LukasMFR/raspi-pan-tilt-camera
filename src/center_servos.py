@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 
 from time import sleep
+
 from adafruit_servokit import ServoKit
 
+from pan_tilt_config import load_config
+
+
+config = load_config()
 kit = ServoKit(channels=16)
 
-# Réglage classique pour petits servos type SG90.
-# Si un servo force en butée, on réduira la plage après.
-for ch in [0, 1]:
-    kit.servo[ch].set_pulse_width_range(500, 2500)
-    kit.servo[ch].angle = 90
-    sleep(0.3)
+positions = (
+    (config["pan_channel"], config["pan_center"], "pan"),
+    (config["tilt_channel"], config["tilt_center"], "tilt"),
+)
 
-print("Servos 0 et 1 centrés à 90°.")
+for channel, angle, name in positions:
+    kit.servo[channel].set_pulse_width_range(500, 2500)
+    kit.servo[channel].angle = angle
+    print(f"{name}: channel {channel} centered at {angle} deg")
+    sleep(0.3)
