@@ -1,0 +1,15 @@
+[Unit]
+Description=Raspberry Pi Pan/Tilt Camera Web App
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/raspi-pan-tilt-camera
+ExecStart=/home/pi/servo-env/bin/python /home/pi/raspi-pan-tilt-camera/src/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
