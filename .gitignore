@@ -179,3 +179,33 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Virtual envs
+venv/
+.env/
+servo-env/
+
+# Local config
+pan_tilt_config.json
+*.local.json
+
+# Camera captures / videos
+*.jpg
+*.jpeg
+*.png
+*.h264
+*.mp4
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
